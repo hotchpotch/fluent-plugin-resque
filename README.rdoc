@@ -1,0 +1,26 @@
+= Fluent event to Resque queue plugin
+
+= Installation
+
+  $ fluent-gem install fluent-plugin-resque
+
+= Usage
+
+    <match queue.name>
+      type resque
+      redis hostname:port/namespace
+      queue file_serve
+      # Resque.enqueue_to('file_serve', 'Queue::Name', record)
+    </match>
+
+    <match queue.name.foo>
+      type resque
+      queue file_serve
+      remove_tag_prefix queue.
+      # Resque.enqueue_to('file_serve', 'Name::Foo', record)
+    </match>
+
+= Copyright
+
+Copyright:: Copyright (c) 2012- Yuichi Tateno
+License::   Apache License, Version 2.0
