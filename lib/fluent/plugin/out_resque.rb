@@ -9,9 +9,10 @@ module Fluent
     include SetTimeKeyMixin
     config_set_default :include_time_key, true
 
+    include HandleTagNameMixin
+
     config_param :queue, :string
     config_param :redis, :string, :default => nil
-    config_param :remove_tag_prefix, :string, :default => nil
 
     def initialize
       super
@@ -44,9 +45,6 @@ module Fluent
       queue_name = @queue_mapped ? chunk.key : @queue
 
       chunk.msgpack_each {|tag, time, record|
-        record[@time_key] = Time.at(time || record[@time_key]) if @include_time_key
-        tag = remove_prefix(tag) if @remove_tag_prefix
-        record[@tag_key] = tag if @include_tag_key
         Resque.enqueue_to(queue_name, camelize(tag), record) 
       }
     end
