@@ -57,7 +57,7 @@ module Fluent
 
     def enqueue(queue, klass, args)
       redis.sadd(:queues, queue.to_s)
-      redis.rpush("queue:#{queue}", ::MultiJson.encode(:class => klass, :args => args))
+      redis.rpush("queue:#{queue}", ::MultiJson.encode(:class => klass, :args => [args]))
     end
 
     def start
