@@ -63,6 +63,19 @@ class ResqueOutputTest < Test::Unit::TestCase
     d.run
   end
 
+  def test_collect
+    d = create_driver(CONFIG + %[
+      collect true
+    ])
+    time = Time.at(Time.now.to_i).utc
+    d.emit({'a' => 1}, time)
+    d.emit({'b' => 2}, time)
+    mock(Resque).enqueue_to("test_queue", "Test", [
+      {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S")}, {"b" => 2, "time" => time.strftime("%y-%m-%d %H:%M:%S")}
+    ])
+    d.run
+  end
+
   def test_change_redis_host
     mock(Resque).redis = "localhost:11111/namespace"
     d = create_driver(CONFIG + "\nredis localhost:11111/namespace")
