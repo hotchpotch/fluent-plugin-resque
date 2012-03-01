@@ -23,7 +23,7 @@ class ResqueOutputTest < Test::Unit::TestCase
 
   def check_enqueue(queue, klass, args)
     mock(@subject).sadd(:queues, "test_queue").any_times
-    mock(@subject).rpush(queue, ::MultiJson.encode(:class => klass, :args => args))
+    mock(@subject).rpush("queue:#{queue}", ::MultiJson.encode(:class => klass, :args => args))
   end
 
   def test_write
