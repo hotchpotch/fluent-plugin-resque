@@ -24,13 +24,6 @@ module Fluent
       super
 
       Resque.redis = conf['redis'] if conf['redis']
-      if remove_tag_prefix = conf['remove_tag_prefix']
-        @remove_tag_prefix = Regexp.new('^' + Regexp.escape(remove_tag_prefix))
-      end
-
-      if remove_tag_prefix = conf['remove_tag_prefix']
-        @remove_tag_prefix = Regexp.new('^' + Regexp.escape(remove_tag_prefix))
-      end
     end
 
     def start
