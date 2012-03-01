@@ -17,6 +17,8 @@ Gem::Specification.new do |gem|
 
   # gem.add_dependency "fluentd", ">= 0.10.8"
   gem.add_dependency "multi_json", "~> 1.0"
+  gem.add_dependency "redis-namespace",  "~> 1.0.2"
+
   gem.add_development_dependency "rake", ">= 0.9.2"
   gem.add_development_dependency "simplecov", ">= 0.5.4"
   gem.add_development_dependency "rr", ">= 1.0.0"

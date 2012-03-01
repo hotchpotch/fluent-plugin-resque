@@ -1,6 +1,6 @@
 require 'test_helper'
-require 'resque'
 require 'fluent/plugin/out_resque'
+require 'multi_json'
 
 class ResqueOutputTest < Test::Unit::TestCase
   def setup

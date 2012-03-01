@@ -16,7 +16,8 @@ module Fluent
 
     def initialize
       super
-      require 'resque'
+      require 'multi_json'
+      require 'redis'
     end
 
     def configure(conf)
