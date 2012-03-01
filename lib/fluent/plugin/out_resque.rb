@@ -13,7 +13,6 @@ module Fluent
 
     config_param :queue, :string
     config_param :redis, :string, :default => nil
-    config_param :collect, :bool, :default => false
 
     def initialize
       super
@@ -41,22 +40,15 @@ module Fluent
     def write(chunk)
       queue_name = @queue_mapped ? chunk.key : @queue
 
-      if @collect
-        records = Hash.new
-        chunk.msgpack_each {|tag, time, record|
-          (records[camelize(tag)] ||= []) << record
-        }
-        records.each {|camelize_tag, record|
-          Resque.enqueue_to(queue_name, camelize_tag, record) 
-        }
-      else
-        chunk.msgpack_each {|tag, time, record|
-          Resque.enqueue_to(queue_name, camelize(tag), record) 
-        }
-      end
+      chunk.msgpack_each {|tag, time, record|
+        Resque.enqueue_to(queue_name, camelize(tag), record) 
+      }
     end
 
     private
+    def remove_prefix(tag)
+      tag.to_s.sub(@remove_tag_prefix, '')
+    end
 
     def camelize(name)
       name.to_s.gsub(/\.(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
