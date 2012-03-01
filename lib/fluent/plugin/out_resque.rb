@@ -18,12 +18,13 @@ module Fluent
       super
       require 'multi_json'
       require 'redis'
+      require 'redis-namespace'
     end
 
     def configure(conf)
       super
 
-      redis = conf['redis'] if conf['redis']
+      self.redis = conf['redis'] if conf['redis']
     end
 
     # code from resque.rb
@@ -49,7 +50,7 @@ module Fluent
     end
 
     def redis
-      return @redis if @redis
+      return @redis if @redis && !@redis.kind_of?(String)
       self.redis = Redis.respond_to?(:connect) ? Redis.connect : "localhost:6379"
       self.redis
     end
