@@ -22,7 +22,40 @@ module Fluent
     def configure(conf)
       super
 
-      Resque.redis = conf['redis'] if conf['redis']
+      redis = conf['redis'] if conf['redis']
+    end
+
+    # code from resque.rb
+    def redis=(server)
+      case server
+      when String
+        if server =~ /redis\:\/\//
+          redis = Redis.connect(:url => server, :thread_safe => true)
+        else
+          server, namespace = server.split('/', 2)
+          host, port, db = server.split(':')
+          redis = Redis.new(:host => host, :port => port,
+                            :thread_safe => true, :db => db)
+        end
+        namespace ||= :resque
+
+        @redis = Redis::Namespace.new(namespace, :redis => redis)
+      when Redis::Namespace
+        @redis = server
+      else
+        @redis = Redis::Namespace.new(:resque, :redis => server)
+      end
+    end
+
+    def redis
+      return @redis if @redis
+      self.redis = Redis.respond_to?(:connect) ? Redis.connect : "localhost:6379"
+      self.redis
+    end
+
+    def enqueue(queue, klass, args)
+      redis.sadd(:queues, queue.to_s)
+      redis.rpush(queue, ::MultiJson.encode(:class => klass, :args => args))
     end
 
     def start
@@ -41,7 +74,7 @@ module Fluent
       queue_name = @queue_mapped ? chunk.key : @queue
 
       chunk.msgpack_each {|tag, time, record|
-        Resque.enqueue_to(queue_name, camelize(tag), record) 
+        enqueue(queue_name, camelize(tag), record) 
       }
     end
 

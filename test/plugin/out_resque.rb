@@ -1,10 +1,13 @@
 require 'test_helper'
 require 'resque'
+require 'fluent/plugin/out_resque'
 
 class ResqueOutputTest < Test::Unit::TestCase
   def setup
+    super
     Fluent::Test.setup
-    require 'fluent/plugin/out_resque'
+    @subject = Object.new
+    any_instance_of(Fluent::ResqueOutput, :redis= => lambda {}, :redis => @subject)
   end
 
   CONFIG = %[
@@ -18,21 +21,27 @@ class ResqueOutputTest < Test::Unit::TestCase
     }.configure(conf)
   end
 
+  def check_enqueue(queue, klass, args)
+    mock(@subject).sadd(:queues, "test_queue").any_times
+    mock(@subject).rpush(queue, ::MultiJson.encode(:class => klass, :args => args))
+  end
+
   def test_write
     d = create_driver
     time = Time.at(Time.now.to_i).utc
     d.emit({'a' => 1}, time)
     d.emit({'b' => 2}, time)
-    mock(Resque).enqueue_to("test_queue", "Test", {"a" => 1 , "time" => time.strftime("%y-%m-%d %H:%M:%S")})
-    mock(Resque).enqueue_to("test_queue", "Test", {"b" => 2 , "time" => time.strftime("%y-%m-%d %H:%M:%S")})
+    check_enqueue("test_queue", "Test", {"a" => 1 , "time" => time.strftime("%y-%m-%d %H:%M:%S")})
+    check_enqueue("test_queue", "Test", {"b" => 2 , "time" => time.strftime("%y-%m-%d %H:%M:%S")})
     d.run
+    assert_equal true, true
   end
 
   def test_write_except_time_key
     d = create_driver(CONFIG + "\ninclude_time_key false")
     time = Time.at(Time.now.to_i).utc
     d.emit({'a' => 1}, time)
-    mock(Resque).enqueue_to("test_queue", "Test", {"a" => 1})
+    check_enqueue("test_queue", "Test", {"a" => 1})
     d.run
   end
 
@@ -40,7 +49,7 @@ class ResqueOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + "\ninclude_tag_key true")
     time = Time.at(Time.now.to_i).utc
     d.emit({'a' => 1}, time)
-    mock(Resque).enqueue_to("test_queue", "Test", {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S"), "tag" => 'test'})
+    check_enqueue("test_queue", "Test", {"a" => 1, "tag" => 'test', "time" => time.strftime("%y-%m-%d %H:%M:%S")})
     d.run
   end
 
@@ -48,7 +57,7 @@ class ResqueOutputTest < Test::Unit::TestCase
     d = create_driver(CONFIG + "\nremove_tag_prefix te")
     time = Time.at(Time.now.to_i).utc
     d.emit({'a' => 1}, time)
-    mock(Resque).enqueue_to("test_queue", "St", {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S")})
+    check_enqueue("test_queue", "St", {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S")})
     d.run
   end
 
@@ -59,12 +68,7 @@ class ResqueOutputTest < Test::Unit::TestCase
     ])
     time = Time.at(Time.now.to_i).utc
     d.emit({'a' => 1}, time)
-    mock(Resque).enqueue_to("test_queue", "Worker::Est", {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S")})
+    check_enqueue("test_queue", "Worker::Est", {"a" => 1, "time" => time.strftime("%y-%m-%d %H:%M:%S")})
     d.run
-  end
-
-  def test_change_redis_host
-    mock(Resque).redis = "localhost:11111/namespace"
-    d = create_driver(CONFIG + "\nredis localhost:11111/namespace")
   end
 end
