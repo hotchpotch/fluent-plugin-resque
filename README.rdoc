@@ -6,19 +6,19 @@
 
 = Usage
 
-    <match queue.name>
+    <match resque>
       type resque
       redis hostname:port/namespace
       queue file_serve
-      # Resque.enqueue_to('file_serve', 'Queue::Name', record)
+      worker_class_name_tag class # default class
     </match>
-
-    <match queue.name.foo>
-      type resque
-      queue file_serve
-      remove_tag_prefix queue.
-      # Resque.enqueue_to('file_serve', 'Name::Foo', record)
-    </match>
+    
+    fluent_logger.post('resque', {
+      :class => 'Worker::MyClass',
+      :user_id => xxx,
+      :body => yyy
+    })
+    #=> enqueue ('file_serve', 'Worker::MyClass', {:user_id => xxx, :body => yyy})
 
 = Copyright
 
