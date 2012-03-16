@@ -9,10 +9,9 @@ module Fluent
     include SetTimeKeyMixin
     config_set_default :include_time_key, true
 
-    include HandleTagNameMixin
-
     config_param :queue, :string
     config_param :redis, :string, :default => nil
+    config_param :worker_class_name_tag, :string, :default => 'class'
 
     def initialize
       super
@@ -24,6 +23,7 @@ module Fluent
     def configure(conf)
       super
 
+      @worker_class_name_tag = conf['worker_class_name_tag'] || 'class'
       self.redis = conf['redis'] if conf['redis']
     end
 
@@ -76,17 +76,13 @@ module Fluent
       queue_name = @queue_mapped ? chunk.key : @queue
 
       chunk.msgpack_each {|tag, time, record|
-        enqueue(queue_name, camelize(tag), record) 
+        klass = record.delete(@worker_class_name_tag)
+        if klass && !klass.empty?
+          enqueue(queue_name, klass, record)
+        else
+          $log.error("record have not #{@worker_class_name_tag} key.")
+        end
       }
-    end
-
-    private
-    def remove_prefix(tag)
-      tag.to_s.sub(@remove_tag_prefix, '')
-    end
-
-    def camelize(name)
-      name.to_s.gsub(/\.(.?)/) { "::" + $1.upcase }.gsub(/(^|_)(.)/) { $2.upcase }
     end
   end
 end
